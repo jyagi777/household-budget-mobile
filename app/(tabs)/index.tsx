@@ -172,11 +172,13 @@ export default function HomeScreen() {
               {isReserve ? (
                 <TextInput
                   accessibilityLabel={`${item.name}の名前`}
-                  className="min-w-0 flex-1 py-0 text-base font-bold text-foreground"
-                  placeholder={item.name}
+                  className="min-w-0 flex-1 rounded-lg bg-background px-2 text-base font-bold text-foreground"
+                  editable
+                  placeholder="予備の名前を入力"
                   placeholderTextColor="#74827B"
                   value={labels[item.id] ?? ""}
                   onChangeText={(value) => setReserveLabel(item.id, value)}
+                  style={{ minWidth: 0, height: 34, paddingVertical: 0 }}
                   returnKeyType="done"
                 />
               ) : (
