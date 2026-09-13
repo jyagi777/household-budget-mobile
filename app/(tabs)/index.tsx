@@ -36,6 +36,7 @@ type MonthData = {
 type SavedState = {
   months?: Record<string, MonthData>;
   labels?: Record<string, string>;
+  days?: Record<string, string>;
   salary?: string;
   amounts?: Amounts;
   month?: string;
@@ -44,6 +45,8 @@ type SavedState = {
 const currency = (value: number) => `${Math.round(value).toLocaleString("ja-JP")}円`;
 
 const emptyMonthData = (): MonthData => ({ salary: "", amounts: { ...initialAmounts } });
+const emptyPaymentMap = (): Record<string, string> =>
+  Object.fromEntries(PAYMENTS.map((payment) => [payment.id, ""]));
 
 function SummaryCard({
   label,
@@ -87,7 +90,8 @@ export default function HomeScreen() {
   const [amounts, setAmounts] = useState<Amounts>(initialAmounts);
   const [month, setMonth] = useState(currentMonth());
   const [months, setMonths] = useState<Record<string, MonthData>>({});
-  const [labels, setLabels] = useState<Record<string, string>>({});
+  const [labels, setLabels] = useState<Record<string, string>>(emptyPaymentMap);
+  const [days, setDays] = useState<Record<string, string>>(emptyPaymentMap);
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -98,7 +102,8 @@ export default function HomeScreen() {
         const data = JSON.parse(raw) as Partial<SavedState>;
         if (data.months) {
           setMonths(data.months);
-          setLabels(data.labels ?? {});
+          setLabels({ ...emptyPaymentMap(), ...(data.labels ?? {}) });
+          setDays({ ...emptyPaymentMap(), ...(data.days ?? {}) });
           const activeMonth = data.month ?? currentMonth();
           const activeData = data.months[activeMonth] ?? emptyMonthData();
           setSalary(activeData.salary);
@@ -108,7 +113,8 @@ export default function HomeScreen() {
           const legacyMonth = data.month ?? currentMonth();
           const legacyData = { salary: data.salary ?? "", amounts: { ...initialAmounts, ...(data.amounts ?? {}) } };
           setMonths({ [legacyMonth]: legacyData });
-          setLabels(data.labels ?? {});
+          setLabels({ ...emptyPaymentMap(), ...(data.labels ?? {}) });
+          setDays({ ...emptyPaymentMap(), ...(data.days ?? {}) });
           setSalary(legacyData.salary);
           setAmounts(legacyData.amounts);
           setMonth(legacyMonth);
@@ -121,10 +127,10 @@ export default function HomeScreen() {
   const saveData = useCallback(async () => {
     const nextMonths = { ...months, [month]: { salary, amounts } };
     setMonths(nextMonths);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, labels, month } satisfies SavedState));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, labels, days, month } satisfies SavedState));
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
-  }, [amounts, labels, month, months, salary]);
+  }, [amounts, days, labels, month, months, salary]);
 
   const switchMonth = (delta: number) => {
     const nextMonth = shiftMonth(month, delta);
@@ -134,11 +140,15 @@ export default function HomeScreen() {
     setMonth(nextMonth);
     setSalary(nextData.salary);
     setAmounts({ ...initialAmounts, ...nextData.amounts });
-    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, labels, month: nextMonth } satisfies SavedState));
+    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, labels, days, month: nextMonth } satisfies SavedState));
   };
 
-  const setReserveLabel = (id: string, value: string) => {
+  const setPaymentLabel = (id: string, value: string) => {
     setLabels((current) => ({ ...current, [id]: value }));
+  };
+
+  const setPaymentDay = (id: string, value: string) => {
+    setDays((current) => ({ ...current, [id]: value.replace(/[^0-9]/g, "") }));
   };
 
   const totals = useMemo(() => {
@@ -155,44 +165,42 @@ export default function HomeScreen() {
   };
 
   const renderPayment = ({ item }: { item: Payment }) => {
-    const isReserve = item.day === 0;
-    const displayName = isReserve ? labels[item.id] || item.name : item.name;
+    const displayName = labels[item.id] ?? "";
+    const displayDay = days[item.id] ?? "";
     return (
       <View className="mb-3 rounded-3xl bg-surface px-4 py-4 shadow-sm">
         <View className="flex-row items-center">
           <View className="mr-3 h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: `${item.color}15` }}>
-            {isReserve ? (
-              <MaterialIcons name="edit-note" size={21} color={item.color} />
-            ) : (
-              <Text className="text-base font-bold" style={{ color: item.color }}>{item.day}</Text>
-            )}
+            <MaterialIcons name="edit-note" size={21} color={item.color} />
           </View>
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center">
-              {isReserve ? (
-                <TextInput
-                  accessibilityLabel={`${item.name}の名前`}
-                  className="min-w-0 flex-1 rounded-lg bg-background px-2 text-base font-bold text-foreground"
-                  editable
-                  placeholder="予備の名前を入力"
-                  placeholderTextColor="#74827B"
-                  value={labels[item.id] ?? ""}
-                  onChangeText={(value) => setReserveLabel(item.id, value)}
-                  style={{ minWidth: 0, height: 34, paddingVertical: 0 }}
-                  returnKeyType="done"
-                />
-              ) : (
-                <Text className="text-base font-bold text-foreground">{displayName}</Text>
-              )}
-              {isReserve ? (
-                <View className="ml-2 rounded-full bg-background px-2 py-1">
-                  <Text className="text-[10px] font-semibold text-muted">予備欄</Text>
-                </View>
-              ) : null}
+              <TextInput
+                accessibilityLabel={`${item.id}の支払先名`}
+                className="min-w-0 flex-1 rounded-lg bg-background px-2 text-base font-bold text-foreground"
+                placeholder="支払先名を入力"
+                placeholderTextColor="#74827B"
+                value={displayName}
+                onChangeText={(value) => setPaymentLabel(item.id, value)}
+                style={{ minWidth: 0, height: 34, paddingVertical: 0 }}
+                returnKeyType="next"
+              />
             </View>
-            <Text className="mt-1 text-xs text-muted">
-              {isReserve ? "支払先・日付をメモできます" : `${item.day}日 / ${item.schedule}`}
-            </Text>
+            <View className="mt-1 flex-row items-center">
+              <Text className="text-xs text-muted">支払日：</Text>
+              <TextInput
+                accessibilityLabel={`${item.id}の支払日`}
+                className="w-16 rounded-lg bg-background px-2 py-1 text-center text-xs text-foreground"
+                inputMode="numeric"
+                keyboardType="number-pad"
+                placeholder="日"
+                placeholderTextColor="#74827B"
+                value={displayDay}
+                onChangeText={(value) => setPaymentDay(item.id, value)}
+                returnKeyType="done"
+              />
+              <Text className="ml-1 text-xs text-muted">日・毎月</Text>
+            </View>
           </View>
           <View className="ml-3 w-[38%]">
             <TextInput
