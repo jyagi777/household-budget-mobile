@@ -195,15 +195,15 @@ export default function HomeScreen() {
 
       <View className="mt-7 rounded-3xl bg-surface px-4 py-4 shadow-sm">
         <View className="flex-row items-center justify-between">
-          <View>
+          <View className="min-w-0 flex-1">
             <Text className="text-base font-bold text-foreground">給料の金額</Text>
             <Text className="mt-1 text-xs text-muted">差額の計算に使います</Text>
           </View>
-          <View className="w-[44%] flex-row items-center rounded-2xl bg-background px-3">
+          <View className="ml-4 min-w-0 flex-1 flex-row items-center rounded-2xl bg-background px-3">
             <Text className="mr-1 text-sm font-semibold text-muted">¥</Text>
             <TextInput
               accessibilityLabel="給料の金額"
-              className="flex-1 py-3 text-right text-base font-semibold text-foreground"
+              className="min-w-0 flex-1 py-3 text-right text-base font-semibold text-foreground"
               inputMode="numeric"
               keyboardType="number-pad"
               placeholder="0"
