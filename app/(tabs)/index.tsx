@@ -14,6 +14,7 @@ import { ScreenContainer } from "@/components/screen-container";
 
 import {
   calculateTotals,
+  calculateAnnualTotal,
   currentMonth,
   initialAmounts,
   monthLabel,
@@ -34,6 +35,7 @@ type MonthData = {
 
 type SavedState = {
   months?: Record<string, MonthData>;
+  labels?: Record<string, string>;
   salary?: string;
   amounts?: Amounts;
   month?: string;
@@ -85,6 +87,7 @@ export default function HomeScreen() {
   const [amounts, setAmounts] = useState<Amounts>(initialAmounts);
   const [month, setMonth] = useState(currentMonth());
   const [months, setMonths] = useState<Record<string, MonthData>>({});
+  const [labels, setLabels] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -95,6 +98,7 @@ export default function HomeScreen() {
         const data = JSON.parse(raw) as Partial<SavedState>;
         if (data.months) {
           setMonths(data.months);
+          setLabels(data.labels ?? {});
           const activeMonth = data.month ?? currentMonth();
           const activeData = data.months[activeMonth] ?? emptyMonthData();
           setSalary(activeData.salary);
@@ -104,6 +108,7 @@ export default function HomeScreen() {
           const legacyMonth = data.month ?? currentMonth();
           const legacyData = { salary: data.salary ?? "", amounts: { ...initialAmounts, ...(data.amounts ?? {}) } };
           setMonths({ [legacyMonth]: legacyData });
+          setLabels(data.labels ?? {});
           setSalary(legacyData.salary);
           setAmounts(legacyData.amounts);
           setMonth(legacyMonth);
@@ -116,10 +121,10 @@ export default function HomeScreen() {
   const saveData = useCallback(async () => {
     const nextMonths = { ...months, [month]: { salary, amounts } };
     setMonths(nextMonths);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, month } satisfies SavedState));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, labels, month } satisfies SavedState));
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
-  }, [amounts, month, months, salary]);
+  }, [amounts, labels, month, months, salary]);
 
   const switchMonth = (delta: number) => {
     const nextMonth = shiftMonth(month, delta);
@@ -129,12 +134,21 @@ export default function HomeScreen() {
     setMonth(nextMonth);
     setSalary(nextData.salary);
     setAmounts({ ...initialAmounts, ...nextData.amounts });
-    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, month: nextMonth } satisfies SavedState));
+    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, labels, month: nextMonth } satisfies SavedState));
+  };
+
+  const setReserveLabel = (id: string, value: string) => {
+    setLabels((current) => ({ ...current, [id]: value }));
   };
 
   const totals = useMemo(() => {
     return calculateTotals(amounts, salary);
   }, [amounts, salary]);
+
+  const annualTotal = useMemo(() => {
+    const yearMonths = { ...months, [month]: { salary, amounts } };
+    return calculateAnnualTotal(yearMonths, month.slice(0, 4));
+  }, [amounts, month, months, salary]);
 
   const setAmount = (id: string, value: string) => {
     setAmounts((current) => ({ ...current, [id]: value.replace(/[^0-9]/g, "") }));
@@ -142,6 +156,7 @@ export default function HomeScreen() {
 
   const renderPayment = ({ item }: { item: Payment }) => {
     const isReserve = item.day === 0;
+    const displayName = isReserve ? labels[item.id] || item.name : item.name;
     return (
       <View className="mb-3 rounded-3xl bg-surface px-4 py-4 shadow-sm">
         <View className="flex-row items-center">
@@ -154,7 +169,19 @@ export default function HomeScreen() {
           </View>
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center">
-              <Text className="text-base font-bold text-foreground">{item.name}</Text>
+              {isReserve ? (
+                <TextInput
+                  accessibilityLabel={`${item.name}の名前`}
+                  className="min-w-0 flex-1 py-0 text-base font-bold text-foreground"
+                  placeholder={item.name}
+                  placeholderTextColor="#74827B"
+                  value={labels[item.id] ?? ""}
+                  onChangeText={(value) => setReserveLabel(item.id, value)}
+                  returnKeyType="done"
+                />
+              ) : (
+                <Text className="text-base font-bold text-foreground">{displayName}</Text>
+              )}
               {isReserve ? (
                 <View className="ml-2 rounded-full bg-background px-2 py-1">
                   <Text className="text-[10px] font-semibold text-muted">予備欄</Text>
@@ -225,6 +252,11 @@ export default function HomeScreen() {
       <View className="mt-3 flex-row gap-3">
         <SummaryCard label="東海労金" value={currency(totals.tokai)} accent="#2E8B72" icon="account-balance" />
         <SummaryCard label="岐阜信用金庫" value={currency(totals.gifu)} accent="#C47B3E" icon="account-balance" />
+      </View>
+
+      <View className="mt-3 flex-row gap-3">
+        <SummaryCard label={`${month.slice(0, 4)}年の年間支払い`} value={currency(annualTotal)} accent="#526B9B" icon="calendar-month" />
+        <SummaryCard label="入力メモ" value="予備欄で設定" accent="#8B6A9B" icon="edit-note" />
       </View>
 
       <View className="mt-7 rounded-3xl bg-surface px-4 py-4 shadow-sm">

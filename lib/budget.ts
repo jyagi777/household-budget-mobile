@@ -50,6 +50,11 @@ export const calculateTotals = (amounts: Amounts, salary: string) => {
   return { tokai, gifu, total: tokai + gifu, balance: numeric(salary) - tokai - gifu };
 };
 
+export const calculateAnnualTotal = (months: Record<string, MonthBudget>, year: string) =>
+  Object.entries(months)
+    .filter(([month]) => month.startsWith(`${year}-`))
+    .reduce((sum, [, data]) => sum + calculateTotals(data.amounts, data.salary).total, 0);
+
 export const monthLabel = (month: string) => {
   const [year, monthNumber] = month.split("-");
   return `${year}年${Number(monthNumber)}月`;

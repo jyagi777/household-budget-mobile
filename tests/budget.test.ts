@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateTotals,
+  calculateAnnualTotal,
   getMonthBudget,
   monthLabel,
   PAYMENTS,
@@ -57,5 +58,13 @@ describe("household budget calculations", () => {
     const saved = saveMonthBudget({}, "2026-09", { salary: "250000", amounts: { eneos: "12000" } });
     expect(getMonthBudget(saved, "2026-09")).toMatchObject({ salary: "250000", amounts: { eneos: "12000" } });
     expect(getMonthBudget(saved, "2026-10")).toMatchObject({ salary: "", amounts: { eneos: "" } });
+  });
+
+  it("calculates the annual payment total for the selected year", () => {
+    expect(calculateAnnualTotal({
+      "2026-01": { salary: "250000", amounts: { eneos: "10000" } },
+      "2026-02": { salary: "250000", amounts: { eneos: "12000" } },
+      "2027-01": { salary: "250000", amounts: { eneos: "99999" } },
+    }, "2026")).toBe(22000);
   });
 });
