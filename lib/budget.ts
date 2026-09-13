@@ -11,6 +11,11 @@ export type Payment = {
 
 export type Amounts = Record<string, string>;
 
+export type MonthBudget = {
+  salary: string;
+  amounts: Amounts;
+};
+
 export const PAYMENTS: Payment[] = [
   { id: "eneos", bank: "tokai", name: "エネオス", day: 2, schedule: "毎月", color: "#2E8B72" },
   { id: "car-loan", bank: "gifu", name: "カーローン", day: 5, schedule: "毎月", color: "#C47B3E" },
@@ -26,6 +31,16 @@ export const PAYMENTS: Payment[] = [
 ];
 
 export const initialAmounts: Amounts = Object.fromEntries(PAYMENTS.map((payment) => [payment.id, ""]));
+
+export const emptyMonthBudget = (): MonthBudget => ({ salary: "", amounts: { ...initialAmounts } });
+
+export const saveMonthBudget = (months: Record<string, MonthBudget>, month: string, data: MonthBudget) => ({
+  ...months,
+  [month]: { salary: data.salary, amounts: { ...data.amounts } },
+});
+
+export const getMonthBudget = (months: Record<string, MonthBudget>, month: string) =>
+  months[month] ?? emptyMonthBudget();
 
 export const numeric = (value: string | undefined) => Number(value?.replace(/[^0-9]/g, "") || 0);
 

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateTotals,
+  getMonthBudget,
   monthLabel,
   PAYMENTS,
+  saveMonthBudget,
   shiftMonth,
 } from "../lib/budget";
 
@@ -49,5 +51,11 @@ describe("household budget calculations", () => {
     expect(shiftMonth("2026-12", 1)).toBe("2027-01");
     expect(shiftMonth("2027-01", -1)).toBe("2026-12");
     expect(monthLabel("2026-09")).toBe("2026年9月");
+  });
+
+  it("keeps salary and payments separate for each month", () => {
+    const saved = saveMonthBudget({}, "2026-09", { salary: "250000", amounts: { eneos: "12000" } });
+    expect(getMonthBudget(saved, "2026-09")).toMatchObject({ salary: "250000", amounts: { eneos: "12000" } });
+    expect(getMonthBudget(saved, "2026-10")).toMatchObject({ salary: "", amounts: { eneos: "" } });
   });
 });

@@ -27,13 +27,21 @@ const STORAGE_KEY = "household-budget-v1";
 
 type Amounts = Record<string, string>;
 
-type SavedState = {
+type MonthData = {
   salary: string;
   amounts: Amounts;
-  month: string;
+};
+
+type SavedState = {
+  months?: Record<string, MonthData>;
+  salary?: string;
+  amounts?: Amounts;
+  month?: string;
 };
 
 const currency = (value: number) => `${Math.round(value).toLocaleString("ja-JP")}円`;
+
+const emptyMonthData = (): MonthData => ({ salary: "", amounts: { ...initialAmounts } });
 
 function SummaryCard({
   label,
@@ -76,6 +84,7 @@ export default function HomeScreen() {
   const [salary, setSalary] = useState("");
   const [amounts, setAmounts] = useState<Amounts>(initialAmounts);
   const [month, setMonth] = useState(currentMonth());
+  const [months, setMonths] = useState<Record<string, MonthData>>({});
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -84,19 +93,44 @@ export default function HomeScreen() {
       .then((raw) => {
         if (!raw) return;
         const data = JSON.parse(raw) as Partial<SavedState>;
-        setSalary(data.salary ?? "");
-        setAmounts({ ...initialAmounts, ...(data.amounts ?? {}) });
-        setMonth(data.month ?? currentMonth());
+        if (data.months) {
+          setMonths(data.months);
+          const activeMonth = data.month ?? currentMonth();
+          const activeData = data.months[activeMonth] ?? emptyMonthData();
+          setSalary(activeData.salary);
+          setAmounts({ ...initialAmounts, ...activeData.amounts });
+          setMonth(activeMonth);
+        } else {
+          const legacyMonth = data.month ?? currentMonth();
+          const legacyData = { salary: data.salary ?? "", amounts: { ...initialAmounts, ...(data.amounts ?? {}) } };
+          setMonths({ [legacyMonth]: legacyData });
+          setSalary(legacyData.salary);
+          setAmounts(legacyData.amounts);
+          setMonth(legacyMonth);
+        }
       })
       .catch(() => undefined)
       .finally(() => setLoaded(true));
   }, []);
 
   const saveData = useCallback(async () => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ salary, amounts, month } satisfies SavedState));
+    const nextMonths = { ...months, [month]: { salary, amounts } };
+    setMonths(nextMonths);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, month } satisfies SavedState));
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
-  }, [amounts, month, salary]);
+  }, [amounts, month, months, salary]);
+
+  const switchMonth = (delta: number) => {
+    const nextMonth = shiftMonth(month, delta);
+    const nextMonths = { ...months, [month]: { salary, amounts } };
+    const nextData = nextMonths[nextMonth] ?? emptyMonthData();
+    setMonths(nextMonths);
+    setMonth(nextMonth);
+    setSalary(nextData.salary);
+    setAmounts({ ...initialAmounts, ...nextData.amounts });
+    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ months: nextMonths, month: nextMonth } satisfies SavedState));
+  };
 
   const totals = useMemo(() => {
     return calculateTotals(amounts, salary);
@@ -157,15 +191,15 @@ export default function HomeScreen() {
           <Text className="mt-2 text-3xl font-bold leading-9 text-foreground">今月の家計簿</Text>
           <Text className="mt-2 text-sm leading-5 text-muted">支払日と引き落としを、ひとつの画面で。</Text>
         </View>
-        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-sm">
-          <MaterialIcons name="account-balance-wallet" color="#FFFFFF" size={24} />
+        <View className="rounded-2xl bg-primary px-3 py-3 shadow-sm">
+          <Text className="text-xs font-bold text-white">個人用</Text>
         </View>
       </View>
 
       <View className="mb-5 flex-row items-center justify-between rounded-3xl bg-primary px-4 py-3">
         <Pressable
           accessibilityLabel="前の月"
-          onPress={() => setMonth((current) => shiftMonth(current, -1))}
+          onPress={() => switchMonth(-1)}
           style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.65 : 1 })}
         >
           <MaterialIcons name="chevron-left" color="#FFFFFF" size={24} />
@@ -176,7 +210,7 @@ export default function HomeScreen() {
         </View>
         <Pressable
           accessibilityLabel="次の月"
-          onPress={() => setMonth((current) => shiftMonth(current, 1))}
+          onPress={() => switchMonth(1)}
           style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.65 : 1 })}
         >
           <MaterialIcons name="chevron-right" color="#FFFFFF" size={24} />
