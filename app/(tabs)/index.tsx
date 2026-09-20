@@ -206,10 +206,11 @@ export default function HomeScreen() {
               <Text className="ml-1 text-xs text-muted">日・{scheduleLabel}</Text>
             </View>
           </View>
-          <View className="ml-3 w-[38%]">
+          <View className="ml-3 w-[38%] flex-row items-center rounded-2xl bg-background px-3">
+            <Text className="mr-1 text-sm font-semibold text-muted">¥</Text>
             <TextInput
               accessibilityLabel={`${item.name}の金額`}
-              className="rounded-2xl bg-background px-3 py-3 text-right text-base font-semibold text-foreground"
+              className="min-w-0 flex-1 py-3 text-right text-base font-semibold text-foreground"
               inputMode="numeric"
               keyboardType="number-pad"
               placeholder="0"
@@ -218,6 +219,7 @@ export default function HomeScreen() {
               onChangeText={(value) => setAmount(item.id, value)}
               returnKeyType="done"
             />
+            <Text className="ml-1 text-sm font-semibold text-muted">円</Text>
           </View>
         </View>
       </View>
@@ -292,6 +294,7 @@ export default function HomeScreen() {
               onChangeText={(value) => setSalary(value.replace(/[^0-9]/g, ""))}
               returnKeyType="done"
             />
+            <Text className="ml-1 text-sm font-semibold text-muted">円</Text>
           </View>
         </View>
       </View>
