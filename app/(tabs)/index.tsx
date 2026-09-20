@@ -169,6 +169,7 @@ export default function HomeScreen() {
   const renderPayment = ({ item }: { item: Payment }) => {
     const displayName = labels[item.id] ?? "";
     const displayDay = days[item.id] ?? "";
+    const scheduleLabel = item.schedule === "隔月" ? "隔月" : "毎月";
     return (
       <View className="mb-3 rounded-3xl bg-surface px-4 py-4 shadow-sm">
         <View className="flex-row items-center">
@@ -192,16 +193,17 @@ export default function HomeScreen() {
               <Text className="text-xs text-muted">支払日：</Text>
               <TextInput
                 accessibilityLabel={`${item.id}の支払日`}
-                className="w-16 rounded-lg bg-background px-2 py-1 text-center text-xs text-foreground"
+                className="rounded-lg bg-background text-center text-xs text-foreground"
                 inputMode="numeric"
                 keyboardType="number-pad"
                 placeholder="日"
                 placeholderTextColor="#74827B"
                 value={displayDay}
                 onChangeText={(value) => setPaymentDay(item.id, value)}
+                style={{ width: 48, height: 28, flexGrow: 0, flexShrink: 0, paddingHorizontal: 6, paddingVertical: 0, textAlign: "center" }}
                 returnKeyType="done"
               />
-              <Text className="ml-1 text-xs text-muted">日・毎月</Text>
+              <Text className="ml-1 text-xs text-muted">日・{scheduleLabel}</Text>
             </View>
           </View>
           <View className="ml-3 w-[38%]">
