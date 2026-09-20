@@ -45,8 +45,10 @@ type SavedState = {
 const currency = (value: number) => `${Math.round(value).toLocaleString("ja-JP")}円`;
 
 const emptyMonthData = (): MonthData => ({ salary: "", amounts: { ...initialAmounts } });
-const emptyPaymentMap = (): Record<string, string> =>
-  Object.fromEntries(PAYMENTS.map((payment) => [payment.id, ""]));
+const defaultPaymentLabels = (): Record<string, string> =>
+  Object.fromEntries(PAYMENTS.map((payment) => [payment.id, payment.name]));
+const defaultPaymentDays = (): Record<string, string> =>
+  Object.fromEntries(PAYMENTS.map((payment) => [payment.id, payment.day ? String(payment.day) : ""]));
 
 function SummaryCard({
   label,
@@ -90,8 +92,8 @@ export default function HomeScreen() {
   const [amounts, setAmounts] = useState<Amounts>(initialAmounts);
   const [month, setMonth] = useState(currentMonth());
   const [months, setMonths] = useState<Record<string, MonthData>>({});
-  const [labels, setLabels] = useState<Record<string, string>>(emptyPaymentMap);
-  const [days, setDays] = useState<Record<string, string>>(emptyPaymentMap);
+  const [labels, setLabels] = useState<Record<string, string>>(defaultPaymentLabels);
+  const [days, setDays] = useState<Record<string, string>>(defaultPaymentDays);
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -102,8 +104,8 @@ export default function HomeScreen() {
         const data = JSON.parse(raw) as Partial<SavedState>;
         if (data.months) {
           setMonths(data.months);
-          setLabels({ ...emptyPaymentMap(), ...(data.labels ?? {}) });
-          setDays({ ...emptyPaymentMap(), ...(data.days ?? {}) });
+          setLabels(defaultPaymentLabels());
+          setDays(defaultPaymentDays());
           const activeMonth = data.month ?? currentMonth();
           const activeData = data.months[activeMonth] ?? emptyMonthData();
           setSalary(activeData.salary);
@@ -113,8 +115,8 @@ export default function HomeScreen() {
           const legacyMonth = data.month ?? currentMonth();
           const legacyData = { salary: data.salary ?? "", amounts: { ...initialAmounts, ...(data.amounts ?? {}) } };
           setMonths({ [legacyMonth]: legacyData });
-          setLabels({ ...emptyPaymentMap(), ...(data.labels ?? {}) });
-          setDays({ ...emptyPaymentMap(), ...(data.days ?? {}) });
+          setLabels(defaultPaymentLabels());
+          setDays(defaultPaymentDays());
           setSalary(legacyData.salary);
           setAmounts(legacyData.amounts);
           setMonth(legacyMonth);
