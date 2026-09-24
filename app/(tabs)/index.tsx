@@ -167,8 +167,9 @@ export default function HomeScreen() {
   };
 
   const renderPayment = ({ item }: { item: Payment }) => {
-    const displayName = labels[item.id] ?? "";
-    const displayDay = days[item.id] ?? "";
+    const isReserve = item.day === 0;
+    const displayName = isReserve ? (labels[item.id] ?? "") : item.name;
+    const displayDay = isReserve ? (days[item.id] ?? "") : String(item.day);
     const scheduleLabel = item.schedule === "隔月" ? "隔月" : "毎月";
     return (
       <View className="mb-3 rounded-3xl bg-surface px-4 py-4 shadow-sm">
@@ -178,31 +179,43 @@ export default function HomeScreen() {
           </View>
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center">
-              <TextInput
-                accessibilityLabel={`${item.id}の支払先名`}
-                className="min-w-0 flex-1 rounded-lg bg-background px-2 text-base font-bold text-foreground"
-                placeholder="支払先名を入力"
-                placeholderTextColor="#74827B"
-                value={displayName}
-                onChangeText={(value) => setPaymentLabel(item.id, value)}
-                style={{ minWidth: 0, height: 34, paddingVertical: 0 }}
-                returnKeyType="next"
-              />
+              {isReserve ? (
+                <TextInput
+                  accessibilityLabel={`${item.id}の支払先名`}
+                  className="min-w-0 flex-1 rounded-lg bg-background px-2 text-base font-bold text-foreground"
+                  placeholder="予備の名前を入力"
+                  placeholderTextColor="#74827B"
+                  value={displayName}
+                  onChangeText={(value) => setPaymentLabel(item.id, value)}
+                  style={{ minWidth: 0, height: 34, paddingVertical: 0 }}
+                  returnKeyType="next"
+                />
+              ) : (
+                <Text className="min-w-0 flex-1 rounded-lg bg-background px-2 py-2 text-base font-bold text-foreground">
+                  {displayName}
+                </Text>
+              )}
             </View>
             <View className="mt-1 flex-row items-center">
               <Text className="text-xs text-muted">支払日：</Text>
-              <TextInput
-                accessibilityLabel={`${item.id}の支払日`}
-                className="rounded-lg bg-background text-center text-xs text-foreground"
-                inputMode="numeric"
-                keyboardType="number-pad"
-                placeholder="日"
-                placeholderTextColor="#74827B"
-                value={displayDay}
-                onChangeText={(value) => setPaymentDay(item.id, value)}
-                style={{ width: 48, height: 28, flexGrow: 0, flexShrink: 0, paddingHorizontal: 6, paddingVertical: 0, textAlign: "center" }}
-                returnKeyType="done"
-              />
+              {isReserve ? (
+                <TextInput
+                  accessibilityLabel={`${item.id}の支払日`}
+                  className="rounded-lg bg-background text-center text-xs text-foreground"
+                  inputMode="numeric"
+                  keyboardType="number-pad"
+                  placeholder="日"
+                  placeholderTextColor="#74827B"
+                  value={displayDay}
+                  onChangeText={(value) => setPaymentDay(item.id, value)}
+                  style={{ width: 48, height: 28, flexGrow: 0, flexShrink: 0, paddingHorizontal: 6, paddingVertical: 0, textAlign: "center" }}
+                  returnKeyType="done"
+                />
+              ) : (
+                <Text className="w-12 rounded-lg bg-background px-1 py-2 text-center text-xs text-foreground">
+                  {displayDay}
+                </Text>
+              )}
               <Text className="ml-1 text-xs text-muted">日・{scheduleLabel}</Text>
             </View>
           </View>
