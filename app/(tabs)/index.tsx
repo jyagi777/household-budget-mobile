@@ -126,6 +126,15 @@ export default function HomeScreen() {
       .finally(() => setLoaded(true));
   }, []);
 
+  useEffect(() => {
+    if (!loaded) return;
+    const nextMonths = { ...months, [month]: { salary, amounts } };
+    void AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ months: nextMonths, labels, days, month } satisfies SavedState),
+    ).catch(() => undefined);
+  }, [amounts, days, labels, loaded, month, months, salary]);
+
   const saveData = useCallback(async () => {
     const nextMonths = { ...months, [month]: { salary, amounts } };
     setMonths(nextMonths);
